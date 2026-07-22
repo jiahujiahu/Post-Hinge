@@ -1,66 +1,37 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type {
-  AppData,
-  BudgetCategory,
-  ChatMessage,
-  CoupleProfile,
-  EmailDraft,
   Expense,
   PlanningTask,
   QuoteAnalysis,
   VendorQuote,
+  CoupleProfile,
   WeddingDetails,
+  ChatMessage,
+  EmailDraft,
 } from '@/types'
 import { loadAppData, resetAppData, saveAppData } from '@/lib/storage'
 import { getBudgetSummary } from '@/lib/budget'
-import { deriveBudgetCategories, createId } from '@/lib/utils'
-
-interface AppContextValue {
-  data: AppData
-  budgetSummary: ReturnType<typeof getBudgetSummary>
-  budgetCategories: BudgetCategory[]
-  updateCouple: (couple: Partial<CoupleProfile>) => void
-  updateWedding: (wedding: Partial<WeddingDetails>) => void
-  completeOnboarding: (couple: CoupleProfile, wedding: WeddingDetails) => void
-  setTasks: (tasks: PlanningTask[]) => void
-  upsertTask: (task: PlanningTask) => void
-  deleteTask: (id: string) => void
-  toggleTaskComplete: (id: string) => void
-  addExpense: (expense: Omit<Expense, 'id'>) => void
-  updateExpense: (expense: Expense) => void
-  deleteExpense: (id: string) => void
-  addQuote: (quote: VendorQuote, analysis?: QuoteAnalysis) => void
-  selectQuote: (id: string) => void
-  addQuoteToComparison: (id: string) => void
-  addEmailDraft: (draft: Omit<EmailDraft, 'id' | 'createdAt'>) => void
-  addChatMessage: (message: Omit<ChatMessage, 'id' | 'createdAt'> & { id?: string; createdAt?: string }) => void
-  resetDemo: () => void
-}
-
-const AppContext = createContext<AppContextValue | null>(null)
+import { applyOnboardingToAppData } from '@/lib/onboarding'
+import { createId, deriveBudgetCategories } from '@/lib/utils'
+import { AppContext, type AppContextValue } from '@/context/app-context'
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<AppData>(() => loadAppData())
+  const [data, setData] = useState(() => loadAppData())
 
   useEffect(() => {
     saveAppData(data)
   }, [data])
 
-  const update = useCallback((updater: (prev: AppData) => AppData) => {
+  const update = useCallback((updater: (prev: typeof data) => typeof data) => {
     setData((prev) => updater(prev))
   }, [])
 
   const value = useMemo<AppContextValue>(() => {
     const budgetCategories = deriveBudgetCategories(data.budgetCategories)
     const budgetSummary = getBudgetSummary({ ...data, budgetCategories })
+
+    const syncAmountSpent = (expenses: Expense[]) =>
+      expenses.filter((item) => item.type === 'spent').reduce((sum, item) => sum + item.amount, 0)
 
     return {
       data,
@@ -70,14 +41,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         update((prev) => ({ ...prev, couple: { ...prev.couple, ...couple } })),
       updateWedding: (wedding) =>
         update((prev) => ({ ...prev, wedding: { ...prev.wedding, ...wedding } })),
-      completeOnboarding: (couple, wedding) =>
-        update((prev) => ({
-          ...prev,
-          couple: { ...couple, onboardingComplete: true },
-          wedding,
-        })),
+      completeOnboarding: (couple: CoupleProfile, wedding: WeddingDetails) =>
+        update((prev) => applyOnboardingToAppData(prev, couple, wedding)),
       setTasks: (tasks) => update((prev) => ({ ...prev, tasks })),
-      upsertTask: (task) =>
+      upsertTask: (task: PlanningTask) =>
         update((prev) => {
           const exists = prev.tasks.some((item) => item.id === task.id)
           return {
@@ -105,6 +72,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addExpense: (expense) =>
         update((prev) => {
           const nextExpense: Expense = { ...expense, id: createId('exp') }
+          const expenses = [nextExpense, ...prev.expenses]
           const categories = prev.budgetCategories.map((category) => {
             if (category.name !== expense.category) return category
             if (expense.type === 'spent') {
@@ -114,15 +82,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           })
           return {
             ...prev,
-            expenses: [nextExpense, ...prev.expenses],
+            expenses,
             budgetCategories: categories,
-            wedding: {
-              ...prev.wedding,
-              amountSpent:
-                expense.type === 'spent'
-                  ? prev.wedding.amountSpent + expense.amount
-                  : prev.wedding.amountSpent,
-            },
+            wedding: { ...prev.wedding, amountSpent: syncAmountSpent(expenses) },
           }
         }),
       updateExpense: (expense) =>
@@ -146,10 +108,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
             return { ...category, spent: Math.max(0, spent), committed: Math.max(0, committed) }
           })
 
+          const expenses = prev.expenses.map((item) => (item.id === expense.id ? expense : item))
           return {
             ...prev,
-            expenses: prev.expenses.map((item) => (item.id === expense.id ? expense : item)),
+            expenses,
             budgetCategories: categories,
+            wedding: { ...prev.wedding, amountSpent: syncAmountSpent(expenses) },
           }
         }),
       deleteExpense: (id) =>
@@ -163,29 +127,53 @@ export function AppProvider({ children }: { children: ReactNode }) {
             }
             return { ...category, committed: Math.max(0, category.committed - target.amount) }
           })
+          const expenses = prev.expenses.filter((item) => item.id !== id)
           return {
             ...prev,
-            expenses: prev.expenses.filter((item) => item.id !== id),
+            expenses,
             budgetCategories: categories,
+            wedding: { ...prev.wedding, amountSpent: syncAmountSpent(expenses) },
           }
         }),
-      addQuote: (quote, analysis) =>
+      addQuote: (quote: VendorQuote, analysis?: QuoteAnalysis) =>
         update((prev) => ({
           ...prev,
-          quotes: [quote, ...prev.quotes.filter((item) => item.id !== quote.id)],
+          quotes: [
+            quote,
+            ...prev.quotes.filter(
+              (item) =>
+                item.id !== quote.id &&
+                !(
+                  item.vendorName.toLowerCase() === quote.vendorName.toLowerCase() &&
+                  item.category === quote.category
+                ),
+            ),
+          ],
           analyses: analysis
             ? [analysis, ...prev.analyses.filter((item) => item.quoteId !== analysis.quoteId)]
             : prev.analyses,
+          selectedQuoteIds: prev.selectedQuoteIds.includes(quote.id)
+            ? prev.selectedQuoteIds
+            : [...prev.selectedQuoteIds, quote.id],
         })),
       selectQuote: (id) =>
-        update((prev) => ({
-          ...prev,
-          quotes: prev.quotes.map((quote) => ({
-            ...quote,
-            selected: quote.id === id ? true : quote.category === prev.quotes.find((q) => q.id === id)?.category ? false : quote.selected,
-          })),
-          selectedQuoteIds: Array.from(new Set([...prev.selectedQuoteIds, id])),
-        })),
+        update((prev) => {
+          const target = prev.quotes.find((quote) => quote.id === id)
+          if (!target) return prev
+          return {
+            ...prev,
+            quotes: prev.quotes.map((quote) => ({
+              ...quote,
+              selected:
+                quote.id === id
+                  ? true
+                  : quote.category === target.category
+                    ? false
+                    : Boolean(quote.selected),
+            })),
+            selectedQuoteIds: Array.from(new Set([...prev.selectedQuoteIds, id])),
+          }
+        }),
       addQuoteToComparison: (id) =>
         update((prev) => ({
           ...prev,
@@ -193,7 +181,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             ? prev.selectedQuoteIds
             : [...prev.selectedQuoteIds, id],
         })),
-      addEmailDraft: (draft) =>
+      addEmailDraft: (draft: Omit<EmailDraft, 'id' | 'createdAt'>) =>
         update((prev) => ({
           ...prev,
           emailDrafts: [
@@ -201,7 +189,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
             ...prev.emailDrafts,
           ],
         })),
-      addChatMessage: (message) =>
+      addChatMessage: (
+        message: Omit<ChatMessage, 'id' | 'createdAt'> & { id?: string; createdAt?: string },
+      ) =>
         update((prev) => ({
           ...prev,
           chatMessages: [
@@ -220,10 +210,4 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [data, update])
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
-}
-
-export function useApp() {
-  const context = useContext(AppContext)
-  if (!context) throw new Error('useApp must be used within AppProvider')
-  return context
 }

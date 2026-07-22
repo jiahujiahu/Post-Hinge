@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Copy, RefreshCw, Save, Smile, TextQuote } from 'lucide-react'
+import { Copy, Mail, RefreshCw, Save, Smile, TextQuote } from 'lucide-react'
 import type { EmailPurpose, EmailTone, VendorCategory } from '@/types'
-import { useApp } from '@/context/AppContext'
+import { useApp } from '@/hooks/useApp'
 import { PageHeader } from '@/components/PageHeader'
 import { EmailPreview } from '@/components/EmailPreview'
 import { EmptyState } from '@/components/EmptyState'
@@ -25,8 +25,8 @@ import {
   makeEmailFriendlier,
   makeEmailShorter,
 } from '@/lib/emailGenerator'
+import { copyText } from '@/lib/clipboard'
 import { formatDate } from '@/lib/utils'
-import { Mail } from 'lucide-react'
 
 const purposes: EmailPurpose[] = [
   'Initial inquiry',
@@ -64,44 +64,111 @@ export function EmailsPage() {
   const [purpose, setPurpose] = useState<EmailPurpose>('Quote negotiation')
   const [tone, setTone] = useState<EmailTone>('Warm and friendly')
   const [budgetRange, setBudgetRange] = useState('$3,600 CAD')
-  const [questions, setQuestions] = useState('Can the travel fee be waived?\nCan an album be included at the quoted price?')
-  const [context, setContext] = useState('We love the portfolio and especially value the second photographer and engagement session.')
+  const [questions, setQuestions] = useState(
+    'Can the travel fee be waived?\nCan an album be included at the quoted price?',
+  )
+  const [context, setContext] = useState(
+    'We love the portfolio and especially value the second photographer and engagement session.',
+  )
   const [subject, setSubject] = useState(SAMPLE_NEGOTIATION_EMAIL.subject)
   const [body, setBody] = useState(SAMPLE_NEGOTIATION_EMAIL.body)
-
-  useEffect(() => {
-    const purposeParam = searchParams.get('purpose')
-    const vendorParam = searchParams.get('vendor')
-    if (purposeParam && purposes.includes(purposeParam as EmailPurpose)) {
-      setPurpose(purposeParam as EmailPurpose)
-    }
-    if (vendorParam) setVendorName(vendorParam)
-  }, [searchParams])
+  const [generating, setGenerating] = useState(false)
 
   const coupleNames = `${data.couple.partnerOneName} & ${data.couple.partnerTwoName}`
 
-  const regenerate = () => {
-    if (purpose === 'Quote negotiation' && vendorName.toLowerCase().includes('northlight')) {
-      setSubject(SAMPLE_NEGOTIATION_EMAIL.subject)
-      setBody(SAMPLE_NEGOTIATION_EMAIL.body)
-      toast.success('Negotiation email regenerated')
-      return
+  const buildEmail = (overrides?: {
+    vendorName?: string
+    purpose?: EmailPurpose
+    vendorType?: VendorCategory
+    tone?: EmailTone
+  }) => {
+    const nextVendor = overrides?.vendorName ?? vendorName
+    const nextPurpose = overrides?.purpose ?? purpose
+    const nextType = overrides?.vendorType ?? vendorType
+    const nextTone = overrides?.tone ?? tone
+
+    if (
+      nextPurpose === 'Quote negotiation' &&
+      nextVendor.toLowerCase().includes('northlight')
+    ) {
+      return {
+        subject: SAMPLE_NEGOTIATION_EMAIL.subject,
+        body: SAMPLE_NEGOTIATION_EMAIL.body.replace('Maya & Alex', coupleNames),
+      }
     }
-    const result = generateEmail({
-      vendorType,
-      vendorName,
-      purpose,
-      tone,
+
+    return generateEmail({
+      vendorType: nextType,
+      vendorName: nextVendor,
+      purpose: nextPurpose,
+      tone: nextTone,
       weddingDate: formatDate(data.wedding.weddingDate),
       budgetRange,
       questions,
       context,
       coupleNames,
     })
+  }
+
+  const regenerate = (overrides?: {
+    vendorName?: string
+    purpose?: EmailPurpose
+    vendorType?: VendorCategory
+    tone?: EmailTone
+  }) => {
+    setGenerating(true)
+    window.setTimeout(() => {
+      const result = buildEmail(overrides)
+      setSubject(result.subject)
+      setBody(result.body)
+      setGenerating(false)
+      toast.success('Email ready')
+    }, 450)
+  }
+
+  useEffect(() => {
+    const purposeParam = searchParams.get('purpose')
+    const vendorParam = searchParams.get('vendor')
+    const autogen = searchParams.get('autogen') === '1'
+    if (!purposeParam && !vendorParam && !autogen) return
+
+    const nextPurpose =
+      purposeParam && purposes.includes(purposeParam as EmailPurpose)
+        ? (purposeParam as EmailPurpose)
+        : 'Quote negotiation'
+    const nextVendor = vendorParam || 'Northlight Photography'
+    let nextType: VendorCategory = 'Photography'
+    if (nextVendor.toLowerCase().includes('bloom')) nextType = 'Flowers'
+
+    setPurpose(nextPurpose)
+    setVendorName(nextVendor)
+    setVendorType(nextType)
+
+    if (
+      nextPurpose === 'Quote negotiation' &&
+      nextVendor.toLowerCase().includes('northlight')
+    ) {
+      setSubject(SAMPLE_NEGOTIATION_EMAIL.subject)
+      setBody(SAMPLE_NEGOTIATION_EMAIL.body.replace('Maya & Alex', coupleNames))
+      return
+    }
+
+    const result = generateEmail({
+      vendorType: nextType,
+      vendorName: nextVendor,
+      purpose: nextPurpose,
+      tone: 'Warm and friendly',
+      weddingDate: formatDate(data.wedding.weddingDate),
+      budgetRange: '$3,600 CAD',
+      questions:
+        'Can the travel fee be waived?\nCan an album be included at the quoted price?',
+      context:
+        'We love the portfolio and especially value the second photographer and engagement session.',
+      coupleNames,
+    })
     setSubject(result.subject)
     setBody(result.body)
-    toast.success('Email regenerated')
-  }
+  }, [searchParams, coupleNames, data.wedding.weddingDate])
 
   return (
     <div>
@@ -118,9 +185,12 @@ export function EmailsPage() {
           <CardContent className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Vendor type</Label>
-                <Select value={vendorType} onValueChange={(value) => setVendorType(value as VendorCategory)}>
-                  <SelectTrigger>
+                <Label htmlFor="email-vendor-type">Vendor type</Label>
+                <Select
+                  value={vendorType}
+                  onValueChange={(value) => setVendorType(value as VendorCategory)}
+                >
+                  <SelectTrigger id="email-vendor-type">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -134,12 +204,16 @@ export function EmailsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="vendorName">Vendor name</Label>
-                <Input id="vendorName" value={vendorName} onChange={(event) => setVendorName(event.target.value)} />
+                <Input
+                  id="vendorName"
+                  value={vendorName}
+                  onChange={(event) => setVendorName(event.target.value)}
+                />
               </div>
               <div className="space-y-2">
-                <Label>Email purpose</Label>
+                <Label htmlFor="email-purpose">Email purpose</Label>
                 <Select value={purpose} onValueChange={(value) => setPurpose(value as EmailPurpose)}>
-                  <SelectTrigger>
+                  <SelectTrigger id="email-purpose">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -152,9 +226,9 @@ export function EmailsPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Tone</Label>
+                <Label htmlFor="email-tone">Tone</Label>
                 <Select value={tone} onValueChange={(value) => setTone(value as EmailTone)}>
-                  <SelectTrigger>
+                  <SelectTrigger id="email-tone">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -167,45 +241,73 @@ export function EmailsPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Wedding date</Label>
-                <Input value={formatDate(data.wedding.weddingDate)} readOnly />
+                <Label htmlFor="wedding-date-display">Wedding date</Label>
+                <Input id="wedding-date-display" value={formatDate(data.wedding.weddingDate)} readOnly />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="budgetRange">Budget range</Label>
-                <Input id="budgetRange" value={budgetRange} onChange={(event) => setBudgetRange(event.target.value)} />
+                <Input
+                  id="budgetRange"
+                  value={budgetRange}
+                  onChange={(event) => setBudgetRange(event.target.value)}
+                />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="questions">Important questions</Label>
-              <Textarea id="questions" value={questions} onChange={(event) => setQuestions(event.target.value)} />
+              <Textarea
+                id="questions"
+                value={questions}
+                onChange={(event) => setQuestions(event.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="context">Additional context</Label>
-              <Textarea id="context" value={context} onChange={(event) => setContext(event.target.value)} />
+              <Textarea
+                id="context"
+                value={context}
+                onChange={(event) => setContext(event.target.value)}
+              />
             </div>
-            <Button className="w-full" onClick={regenerate}>
-              Generate email
+            <Button className="w-full" onClick={() => regenerate()} disabled={generating}>
+              {generating ? 'Generating…' : 'Generate email'}
             </Button>
           </CardContent>
         </Card>
 
         <div className="space-y-4">
-          <EmailPreview subject={subject} body={body} />
+          {generating ? (
+            <Card>
+              <CardContent className="space-y-3 p-6" aria-live="polite">
+                <div className="h-4 w-40 animate-pulse rounded bg-secondary" />
+                <div className="h-3 w-full animate-pulse rounded bg-secondary" />
+                <div className="h-3 w-11/12 animate-pulse rounded bg-secondary" />
+                <div className="h-3 w-10/12 animate-pulse rounded bg-secondary" />
+                <div className="h-3 w-9/12 animate-pulse rounded bg-secondary" />
+                <p className="text-sm text-muted-foreground">Drafting a polished vendor email…</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <EmailPreview subject={subject} body={body} />
+          )}
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
+              disabled={generating}
               onClick={async () => {
-                await navigator.clipboard.writeText(`Subject: ${subject}\n\n${body}`)
-                toast.success('Email copied')
+                const ok = await copyText(`Subject: ${subject}\n\n${body}`)
+                if (ok) toast.success('Email copied')
+                else toast.error('Could not copy email')
               }}
             >
               <Copy /> Copy email
             </Button>
-            <Button variant="outline" onClick={regenerate}>
-              <RefreshCw /> Regenerate
+            <Button variant="outline" onClick={() => regenerate()} disabled={generating}>
+              <RefreshCw className={generating ? 'animate-spin' : ''} /> Regenerate
             </Button>
             <Button
               variant="outline"
+              disabled={generating}
               onClick={() => {
                 setBody(makeEmailFriendlier(body))
                 toast.success('Made friendlier')
@@ -215,6 +317,7 @@ export function EmailsPage() {
             </Button>
             <Button
               variant="outline"
+              disabled={generating}
               onClick={() => {
                 setBody(makeEmailShorter(body))
                 toast.success('Made shorter')
@@ -223,6 +326,7 @@ export function EmailsPage() {
               <TextQuote /> Make shorter
             </Button>
             <Button
+              disabled={generating}
               onClick={() => {
                 addEmailDraft({
                   vendorType,
@@ -247,7 +351,9 @@ export function EmailsPage() {
           <EmptyState
             icon={Mail}
             title="No drafts yet"
-            description="Generate an email and save it to keep negotiation language ready."
+            description="Generate an email and save it to keep negotiation language ready for your vendors."
+            actionLabel="Generate email"
+            onAction={() => regenerate()}
           />
         ) : (
           <div className="grid gap-4 lg:grid-cols-2">

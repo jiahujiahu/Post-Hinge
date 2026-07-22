@@ -1,6 +1,6 @@
 import type { AppData } from '@/types'
 
-export const STORAGE_KEY = 'afterhinge_demo_data_v1'
+export const STORAGE_KEY = 'afterhinge_demo_data_v2'
 
 export const createDefaultAppData = (): AppData => ({
   couple: {
@@ -446,5 +446,5 @@ Maya & Alex`,
       createdAt: '2026-07-20T09:00:00.000Z',
     },
   ],
-  selectedQuoteIds: [],
+  selectedQuoteIds: ['quote_1', 'quote_2', 'quote_3'],
 })

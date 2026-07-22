@@ -47,22 +47,32 @@ export function BudgetChart({ categories, summary, variant = 'overview' }: Budge
         <CardHeader>
           <CardTitle className="text-xl">Budget overview</CardTitle>
         </CardHeader>
-        <CardContent className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={overviewData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#eadfd4" />
-              <XAxis dataKey="name" tick={{ fill: '#6f5c55', fontSize: 12 }} />
-              <YAxis tick={{ fill: '#6f5c55', fontSize: 12 }} />
-              <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-              <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                {overviewData.map((entry, index) => (
-                  <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-          <p className="mt-2 text-xs text-muted-foreground">
+        <CardContent>
+          <div className="h-64" aria-hidden="true">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={overviewData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#eadfd4" />
+                <XAxis dataKey="name" tick={{ fill: '#6f5c55', fontSize: 12 }} />
+                <YAxis tick={{ fill: '#6f5c55', fontSize: 12 }} />
+                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                  {overviewData.map((entry, index) => (
+                    <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <ul className="sr-only">
+            {overviewData.map((item) => (
+              <li key={item.name}>
+                {item.name}: {formatCurrency(item.value)}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs text-muted-foreground">
             Projected final spend: {formatCurrency(summary.projectedFinalSpend)}
+            {summary.overBy > 0 ? ` · ${formatCurrency(summary.overBy)} over plan` : ''}
           </p>
         </CardContent>
       </Card>
@@ -75,36 +85,61 @@ export function BudgetChart({ categories, summary, variant = 'overview' }: Budge
         <CardHeader>
           <CardTitle className="text-xl">Category allocation</CardTitle>
         </CardHeader>
-        <CardContent className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={allocationData} dataKey="value" nameKey="name" innerRadius={60} outerRadius={100} paddingAngle={3}>
-                {allocationData.map((entry, index) => (
-                  <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+        <CardContent>
+          <div className="h-72 sm:h-80" aria-hidden="true">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={allocationData}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={55}
+                  outerRadius={90}
+                  paddingAngle={3}
+                >
+                  {allocationData.map((entry, index) => (
+                    <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <ul className="sr-only">
+            {allocationData.map((item) => (
+              <li key={item.name}>
+                {item.name}: {formatCurrency(item.value)}
+              </li>
+            ))}
+          </ul>
         </CardContent>
       </Card>
       <Card>
         <CardHeader>
           <CardTitle className="text-xl">Allocated vs spent</CardTitle>
         </CardHeader>
-        <CardContent className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={comparisonData} margin={{ bottom: 40 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#eadfd4" />
-              <XAxis dataKey="name" angle={-25} textAnchor="end" interval={0} tick={{ fontSize: 11, fill: '#6f5c55' }} />
-              <YAxis tick={{ fill: '#6f5c55', fontSize: 12 }} />
-              <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-              <Legend />
-              <Bar dataKey="Allocated" fill="#E8D5B7" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="Spent" fill="#7A3040" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <CardContent>
+          <div className="h-72 sm:h-80" aria-hidden="true">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={comparisonData} margin={{ bottom: 48, left: 0, right: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#eadfd4" />
+                <XAxis
+                  dataKey="name"
+                  angle={-30}
+                  textAnchor="end"
+                  interval={0}
+                  tick={{ fontSize: 10, fill: '#6f5c55' }}
+                  height={60}
+                />
+                <YAxis tick={{ fill: '#6f5c55', fontSize: 12 }} width={48} />
+                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                <Legend />
+                <Bar dataKey="Allocated" fill="#E8D5B7" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="Spent" fill="#7A3040" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </CardContent>
       </Card>
     </div>

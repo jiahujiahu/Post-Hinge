@@ -11,26 +11,41 @@ const ANALYSIS_STEPS = [
 
 export { ANALYSIS_STEPS }
 
+const KNOWN_QUOTE_IDS: Record<string, string> = {
+  'northlight photography': 'quote_1',
+  'softframe co.': 'quote_2',
+  'softframe co': 'quote_2',
+  'lumière studio': 'quote_3',
+  'lumiere studio': 'quote_3',
+  'bloom & stem': 'quote_4',
+}
+
+export function resolveQuoteId(vendorName: string, existingId?: string) {
+  const known = KNOWN_QUOTE_IDS[vendorName.trim().toLowerCase()]
+  return existingId || known || createId('quote')
+}
+
 export function buildMockAnalysis(input: {
   vendorName: string
   category: VendorCategory
   price: number
   currency: string
   notes?: string
+  quoteId?: string
 }): QuoteAnalysis {
-  const isNorthlight =
-    input.vendorName.toLowerCase().includes('northlight') ||
-    (input.category === 'Photography' && input.price >= 4000)
+  const quoteId = resolveQuoteId(input.vendorName, input.quoteId)
+  const isNorthlight = input.vendorName.toLowerCase().includes('northlight')
+  const isPhotography = input.category === 'Photography'
 
-  if (isNorthlight || input.category === 'Photography') {
+  if (isNorthlight || (isPhotography && input.price >= 4000)) {
     const range = { min: 2800, max: 3600 }
     const percentAboveRange = Math.max(
       0,
       Math.round(((input.price - range.max) / range.max) * 100),
     )
     return {
-      id: createId('analysis'),
-      quoteId: createId('quote'),
+      id: `analysis_${quoteId}`,
+      quoteId,
       vendorName: input.vendorName || 'Northlight Photography',
       quotedPrice: input.price || 4200,
       currency: input.currency,
@@ -54,11 +69,43 @@ export function buildMockAnalysis(input: {
     }
   }
 
+  if (isPhotography) {
+    const range = { min: 2800, max: 3600 }
+    const percentAboveRange = Math.max(
+      0,
+      Math.round(((input.price - range.max) / range.max) * 100),
+    )
+    return {
+      id: `analysis_${quoteId}`,
+      quoteId,
+      vendorName: input.vendorName,
+      quotedPrice: input.price,
+      currency: input.currency,
+      estimatedRange: range,
+      riskLevel: percentAboveRange >= 15 ? 'medium-high' : percentAboveRange > 0 ? 'medium' : 'low',
+      included: [
+        'Coverage package',
+        input.price >= 3400 ? 'Second photographer' : 'Primary photographer',
+        'Online gallery',
+        input.price >= 3000 ? 'Engagement session or album option' : 'Digital deliverables',
+      ],
+      concerns: [
+        input.notes || 'Confirm overtime and travel fees in writing',
+        'Local price benchmarks in this demo are estimates',
+      ],
+      recommendation:
+        input.price <= 3400
+          ? 'This package sits near the demo local range and balances coverage with extras. Strong candidate for comparison.'
+          : `This package is about ${percentAboveRange || 10}% above the demo local top range. Negotiate inclusions before accepting.`,
+      percentAboveRange,
+    }
+  }
+
   const rangeMax = Math.round(input.price * 0.9)
   const rangeMin = Math.round(input.price * 0.7)
   return {
-    id: createId('analysis'),
-    quoteId: createId('quote'),
+    id: `analysis_${quoteId}`,
+    quoteId,
     vendorName: input.vendorName,
     quotedPrice: input.price,
     currency: input.currency,
@@ -79,23 +126,27 @@ export function quoteFromAnalysis(
   category: VendorCategory,
   notes?: string,
   fileName?: string,
+  existing?: VendorQuote,
 ): VendorQuote {
+  const isPhoto = category === 'Photography'
   return {
     id: analysis.quoteId,
-    vendorId: createId('vendor'),
+    vendorId: existing?.vendorId || createId('vendor'),
     vendorName: analysis.vendorName,
     category,
     price: analysis.quotedPrice,
     currency: analysis.currency,
-    hours: category === 'Photography' ? 8 : undefined,
-    secondShooter: category === 'Photography' ? true : undefined,
-    engagementSession: category === 'Photography' ? true : undefined,
-    album: category === 'Photography' ? false : undefined,
+    hours: isPhoto ? existing?.hours ?? 8 : existing?.hours,
+    secondShooter: isPhoto ? existing?.secondShooter ?? true : existing?.secondShooter,
+    engagementSession: isPhoto ? existing?.engagementSession ?? true : existing?.engagementSession,
+    album: isPhoto ? existing?.album ?? false : existing?.album,
     notes,
     fileName,
     risk: analysis.riskLevel,
-    aiRecommendation: analysis.recommendation.slice(0, 120) + (analysis.recommendation.length > 120 ? '…' : ''),
-    selected: false,
-    createdAt: new Date().toISOString(),
+    aiRecommendation:
+      analysis.recommendation.slice(0, 120) + (analysis.recommendation.length > 120 ? '…' : ''),
+    isBestValue: existing?.isBestValue,
+    selected: existing?.selected ?? false,
+    createdAt: existing?.createdAt ?? new Date().toISOString(),
   }
 }

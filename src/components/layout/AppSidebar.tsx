@@ -1,4 +1,5 @@
-import { NavLink } from 'react-router-dom'
+import { useState } from 'react'
+import { NavLink, useNavigate } from 'react-router-dom'
 import {
   CalendarDays,
   LayoutDashboard,
@@ -9,11 +10,12 @@ import {
   Store,
   Heart,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { useApp } from '@/context/AppContext'
-import { toast } from 'sonner'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { useApp } from '@/hooks/useApp'
 
 const links = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -30,13 +32,15 @@ interface AppSidebarProps {
 
 export function AppSidebar({ onNavigate }: AppSidebarProps) {
   const { data, resetDemo } = useApp()
+  const navigate = useNavigate()
+  const [confirmReset, setConfirmReset] = useState(false)
 
   return (
-    <aside className="flex h-full w-72 flex-col border-r border-border/80 bg-card/90 px-4 py-5 backdrop-blur">
+    <aside className="flex h-full w-full flex-col border-r border-border/80 bg-card/90 px-4 py-5 backdrop-blur lg:w-72">
       <div className="mb-6 px-2">
         <div className="flex items-center gap-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-burgundy text-primary-foreground">
-            <Heart className="h-5 w-5 fill-current" />
+            <Heart className="h-5 w-5 fill-current" aria-hidden="true" />
           </div>
           <div>
             <p className="font-display text-2xl font-semibold leading-none">AfterHinge</p>
@@ -66,7 +70,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
               )
             }
           >
-            <link.icon className="h-4 w-4" />
+            <link.icon className="h-4 w-4" aria-hidden="true" />
             {link.label}
           </NavLink>
         ))}
@@ -76,11 +80,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
         <Button
           variant="outline"
           className="w-full justify-start"
-          onClick={() => {
-            resetDemo()
-            toast.success('Demo data restored')
-            onNavigate?.()
-          }}
+          onClick={() => setConfirmReset(true)}
         >
           <RefreshCcw />
           Reset demo data
@@ -89,6 +89,24 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
           Local benchmarks and recommendations are demo estimates for presentation.
         </p>
       </div>
+
+      <ConfirmDialog
+        open={confirmReset}
+        title="Reset demo data?"
+        description="This restores the Maya & Alex sample wedding and clears your local changes."
+        confirmLabel="Reset demo"
+        confirmVariant="default"
+        onOpenChange={setConfirmReset}
+        onConfirm={() => {
+          resetDemo()
+          localStorage.removeItem('afterhinge_walkthrough_dismissed')
+          localStorage.removeItem('afterhinge_walkthrough_steps')
+          sessionStorage.removeItem('afterhinge_dash_loaded')
+          toast.success('Demo data restored')
+          navigate('/dashboard')
+          onNavigate?.()
+        }}
+      />
     </aside>
   )
 }

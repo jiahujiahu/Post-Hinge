@@ -25,7 +25,14 @@ export function answerAssistantPrompt(prompt: string, data: AppData): ChatMessag
   let content = ''
   let contextCards: ContextCard[] = []
 
-  if (normalized.includes('live band') || normalized.includes('afford')) {
+  const asksAffordability =
+    normalized.includes('live band') ||
+    normalized.includes('afford') ||
+    /\bband\b/.test(normalized) ||
+    normalized.includes('musician') ||
+    (normalized.includes('music') && normalized.includes('budget'))
+
+  if (asksAffordability) {
     content = `You currently have ${formatCurrency(summary.remaining)} remaining, but your projected final spend is already ${formatCurrency(summary.overBy)} over budget. A Toronto wedding band may cost approximately $2,500–$5,000 in this demo. To add one without increasing your total budget, you would need to reduce spending in flowers, photography, or miscellaneous expenses.`
     contextCards = [
       ...cardsForBudget(data),

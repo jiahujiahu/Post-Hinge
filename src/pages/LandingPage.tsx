@@ -55,17 +55,19 @@ const afterHinge = [
 export function LandingPage() {
   return (
     <div className="min-h-screen">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 md:px-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-burgundy text-primary-foreground font-display text-lg font-bold">
+      <header className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-5 md:px-6">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-burgundy font-display text-lg font-bold text-primary-foreground">
             A
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="font-display text-2xl font-semibold leading-none">AfterHinge</p>
-            <p className="text-xs text-muted-foreground">The AI copilot for everything after “We matched.”</p>
+            <p className="hidden text-xs text-muted-foreground sm:block">
+              The AI copilot for everything after “We matched.”
+            </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <Badge variant="secondary" className="hidden sm:inline-flex">
             Demo Mode
           </Badge>

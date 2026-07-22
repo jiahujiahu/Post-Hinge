@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { Plus, RefreshCw } from 'lucide-react'
+import { CalendarDays, Plus, RefreshCw } from 'lucide-react'
 import type { PlanningTask, Priority, TaskStatus, TimelinePhase } from '@/types'
-import { useApp } from '@/context/AppContext'
+import { useApp } from '@/hooks/useApp'
 import { PageHeader } from '@/components/PageHeader'
 import { TimelineSection } from '@/components/TimelineSection'
 import { EmptyState } from '@/components/EmptyState'
@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { createId } from '@/lib/utils'
-import { CalendarDays } from 'lucide-react'
+import { regenerateTimeline } from '@/lib/timeline'
 
 const phases: TimelinePhase[] = [
   '12+ months before',
@@ -72,15 +72,7 @@ export function TimelinePage() {
   const regenerate = () => {
     setRegenerating(true)
     window.setTimeout(() => {
-      const refreshed = data.tasks.map((task) =>
-        task.completed
-          ? task
-          : {
-              ...task,
-              note: task.note || `Updated for ${data.wedding.guestCount} guests in ${data.wedding.city}.`,
-            },
-      )
-      setTasks(refreshed)
+      setTasks(regenerateTimeline(data))
       setRegenerating(false)
       toast.success('Timeline updated based on wedding date, guest count, and completed tasks')
     }, 1200)
@@ -92,9 +84,10 @@ export function TimelinePage() {
         title="Wedding timeline"
         subtitle="A phase-by-phase plan from 12+ months out through wedding week."
         actions={
-          <>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <Button
               variant="outline"
+              className="w-full sm:w-auto"
               onClick={() => {
                 setDraft(emptyTask())
                 setEditorOpen(true)
@@ -102,15 +95,15 @@ export function TimelinePage() {
             >
               <Plus /> Add task
             </Button>
-            <Button onClick={regenerate} disabled={regenerating}>
+            <Button className="w-full sm:w-auto" onClick={regenerate} disabled={regenerating}>
               <RefreshCw className={regenerating ? 'animate-spin' : ''} />
               {regenerating ? 'Regenerating…' : 'Regenerate timeline'}
             </Button>
-          </>
+          </div>
         }
       />
 
-      <div className="mb-6 flex flex-wrap gap-2">
+      <div className="mb-6 flex flex-wrap gap-2" role="group" aria-label="Timeline filters">
         {(
           [
             ['all', 'All tasks'],
@@ -123,6 +116,7 @@ export function TimelinePage() {
             key={value}
             size="sm"
             variant={filter === value ? 'default' : 'outline'}
+            aria-pressed={filter === value}
             onClick={() => setFilter(value)}
           >
             {label}

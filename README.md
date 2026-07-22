@@ -25,12 +25,15 @@ Then open the URL Vite prints (usually `http://localhost:5173`).
 
 ## Demo walkthrough
 
-1. Open `/` for the landing page, then click **View demo**.
-2. Explore Maya & Alex’s dashboard, timeline, and budget.
-3. Go to **Vendors**, keep the Northlight Photography sample filled in, and click **Analyze quote**.
-4. Generate a negotiation email on **Emails**.
-5. Ask the assistant: “Can we afford a live band?”
-6. Use **Reset demo data** in the sidebar anytime.
+1. Open `/` and click **Plan our wedding** (or **View demo** to skip).
+2. Complete onboarding (sample Maya & Alex values are prefilled).
+3. Land on the personalized dashboard and follow the presenter walkthrough card.
+4. Open **Vendors**, keep the Northlight Photography sample, click **Analyze quote**.
+5. Watch the animated analysis, then review the three-photographer comparison.
+6. Click **Generate negotiation email** and copy/save the draft.
+7. Open **Budget** to review the projected overrun warning.
+8. Open **Assistant** (or use the budget CTA) and ask: **Can we afford a live band?**
+9. Use **Reset demo data** in the sidebar anytime to restore the sample wedding.
 
 ## Project structure
 

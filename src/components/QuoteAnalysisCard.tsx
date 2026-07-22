@@ -16,6 +16,8 @@ export function QuoteAnalysisCard({
   onAddToComparison,
   onMarkSelected,
 }: QuoteAnalysisCardProps) {
+  const emailHref = `/emails?purpose=${encodeURIComponent('Quote negotiation')}&vendor=${encodeURIComponent(analysis.vendorName)}&autogen=1`
+
   return (
     <Card className="animate-in fade-in-0 slide-in-from-bottom-2 duration-500">
       <CardHeader className="gap-3">
@@ -24,7 +26,10 @@ export function QuoteAnalysisCard({
           <Badge className={riskStyles(analysis.riskLevel)}>Risk: {riskLabel(analysis.riskLevel)}</Badge>
         </div>
         <p className="text-sm text-muted-foreground">
-          Quoted price: <span className="font-semibold text-foreground">{formatCurrency(analysis.quotedPrice, analysis.currency)}</span>
+          Quoted price:{' '}
+          <span className="font-semibold text-foreground">
+            {formatCurrency(analysis.quotedPrice, analysis.currency)}
+          </span>
           {' · '}
           Estimated local range: {formatCurrency(analysis.estimatedRange.min, analysis.currency)}–
           {formatCurrency(analysis.estimatedRange.max, analysis.currency)}
@@ -64,9 +69,7 @@ export function QuoteAnalysisCard({
         </div>
         <div className="flex flex-wrap gap-2">
           <Button asChild>
-            <Link to="/emails?purpose=Quote%20negotiation&vendor=Northlight%20Photography">
-              Generate negotiation email
-            </Link>
+            <Link to={emailHref}>Generate negotiation email</Link>
           </Button>
           <Button variant="outline" onClick={onAddToComparison}>
             Add to comparison

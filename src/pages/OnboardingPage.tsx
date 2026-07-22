@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { toast } from 'sonner'
 import type { CompletedItem, PriorityOption } from '@/types'
-import { useApp } from '@/context/AppContext'
+import { useApp } from '@/hooks/useApp'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -162,7 +162,11 @@ export function OnboardingPage() {
             <p className="text-sm text-muted-foreground">
               Step {step + 1} of {steps.length}: {steps[step]}
             </p>
-            <Progress value={((step + 1) / steps.length) * 100} className="mt-3" />
+            <Progress
+              value={((step + 1) / steps.length) * 100}
+              className="mt-3"
+              aria-label={`Onboarding progress, step ${step + 1} of ${steps.length}`}
+            />
           </CardHeader>
           <CardContent>
             <form
@@ -229,12 +233,12 @@ export function OnboardingPage() {
                     <p className="text-xs text-destructive">{form.formState.errors.totalBudget?.message}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label>Currency</Label>
+                    <Label htmlFor="currency">Currency</Label>
                     <Select
                       value={values.currency}
                       onValueChange={(value) => form.setValue('currency', value, { shouldValidate: true })}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="currency">
                         <SelectValue placeholder="Currency" />
                       </SelectTrigger>
                       <SelectContent>
@@ -267,6 +271,7 @@ export function OnboardingPage() {
                         <button
                           key={priority}
                           type="button"
+                          aria-pressed={selected}
                           onClick={() => togglePriority(priority)}
                           className={cn(
                             'rounded-xl border px-4 py-3 text-left text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
@@ -294,6 +299,7 @@ export function OnboardingPage() {
                         <button
                           key={item}
                           type="button"
+                          aria-pressed={selected}
                           onClick={() => toggleCompleted(item)}
                           className={cn(
                             'rounded-xl border px-4 py-3 text-left text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',

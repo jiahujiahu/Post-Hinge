@@ -1,12 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { Sparkles } from 'lucide-react'
 import type { QuoteAnalysis, VendorCategory } from '@/types'
-import { useApp } from '@/context/AppContext'
+import { useApp } from '@/hooks/useApp'
 import { PageHeader } from '@/components/PageHeader'
 import { QuoteUpload } from '@/components/QuoteUpload'
 import { LoadingAnalysis } from '@/components/LoadingAnalysis'
 import { QuoteAnalysisCard } from '@/components/QuoteAnalysisCard'
 import { VendorComparisonTable } from '@/components/VendorComparisonTable'
+import { EmptyState } from '@/components/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -19,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ANALYSIS_STEPS, buildMockAnalysis, quoteFromAnalysis } from '@/lib/quoteAnalysis'
+import { ANALYSIS_STEPS, buildMockAnalysis, quoteFromAnalysis, resolveQuoteId } from '@/lib/quoteAnalysis'
 
 const categories: VendorCategory[] = [
   'Photography',
@@ -43,10 +45,18 @@ export function VendorsPage() {
   const [analyzing, setAnalyzing] = useState(false)
   const [activeStep, setActiveStep] = useState(0)
   const [analysis, setAnalysis] = useState<QuoteAnalysis | null>(data.analyses[0] ?? null)
+  const comparisonRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (window.location.hash === '#comparison') {
+      comparisonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [])
 
   const runAnalysis = () => {
-    if (!vendorName.trim() || !price) {
-      toast.error('Vendor name and quoted price are required')
+    const amount = Number(price)
+    if (!vendorName.trim() || !Number.isFinite(amount) || amount <= 0) {
+      toast.error('Vendor name and a valid quoted price are required')
       return
     }
 
@@ -57,23 +67,32 @@ export function VendorsPage() {
     let step = 0
     const interval = window.setInterval(() => {
       step += 1
-      setActiveStep(step)
-      if (step >= ANALYSIS_STEPS.length) {
+      setActiveStep(Math.min(step, ANALYSIS_STEPS.length))
+      if (step > ANALYSIS_STEPS.length) {
         window.clearInterval(interval)
+        const quoteId = resolveQuoteId(
+          vendorName,
+          data.quotes.find((quote) => quote.vendorName.toLowerCase() === vendorName.toLowerCase())?.id,
+        )
+        const existing = data.quotes.find((quote) => quote.id === quoteId)
         const result = buildMockAnalysis({
           vendorName,
           category,
-          price: Number(price),
+          price: amount,
           currency: data.wedding.currency,
           notes,
+          quoteId,
         })
-        const quote = quoteFromAnalysis(result, category, notes, fileName)
+        const quote = quoteFromAnalysis(result, category, notes, fileName, existing)
         addQuote(quote, result)
         setAnalysis(result)
         setAnalyzing(false)
         toast.success('Quote analysis ready')
+        window.setTimeout(() => {
+          comparisonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }, 350)
       }
-    }, 550)
+    }, 520)
   }
 
   return (
@@ -92,9 +111,9 @@ export function VendorsPage() {
             <QuoteUpload fileName={fileName} onFileSelect={setFileName} />
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Vendor category</Label>
+                <Label htmlFor="vendor-category">Vendor category</Label>
                 <Select value={category} onValueChange={(value) => setCategory(value as VendorCategory)}>
-                  <SelectTrigger>
+                  <SelectTrigger id="vendor-category">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -108,13 +127,18 @@ export function VendorsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="vendorName">Vendor name</Label>
-                <Input id="vendorName" value={vendorName} onChange={(event) => setVendorName(event.target.value)} />
+                <Input
+                  id="vendorName"
+                  value={vendorName}
+                  onChange={(event) => setVendorName(event.target.value)}
+                />
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="price">Quoted price ({data.wedding.currency})</Label>
                 <Input
                   id="price"
                   type="number"
+                  min={1}
                   value={price}
                   onChange={(event) => setPrice(event.target.value)}
                 />
@@ -128,19 +152,22 @@ export function VendorsPage() {
               {analyzing ? 'Analyzing quote…' : 'Analyze quote'}
             </Button>
             <p className="text-xs text-muted-foreground">
-              Tip: Use the prefilled Northlight Photography sample for the hackathon walkthrough.
+              Tip: Keep the prefilled Northlight Photography sample for the hackathon walkthrough.
             </p>
           </CardContent>
         </Card>
 
         <div className="space-y-6">
-          {analyzing ? <LoadingAnalysis activeStep={Math.min(activeStep, ANALYSIS_STEPS.length - 1)} /> : null}
+          {analyzing ? (
+            <LoadingAnalysis activeStep={Math.min(activeStep, ANALYSIS_STEPS.length - 1)} />
+          ) : null}
           {analysis && !analyzing ? (
             <QuoteAnalysisCard
               analysis={analysis}
               onAddToComparison={() => {
                 addQuoteToComparison(analysis.quoteId)
                 toast.success('Added to comparison')
+                comparisonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
               }}
               onMarkSelected={() => {
                 selectQuote(analysis.quoteId)
@@ -149,18 +176,27 @@ export function VendorsPage() {
             />
           ) : null}
           {!analysis && !analyzing ? (
-            <Card>
-              <CardContent className="p-8 text-sm text-muted-foreground">
-                Run an analysis to see included services, risk level, local range estimates, and a negotiation-ready
-                recommendation.
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={Sparkles}
+              title="Ready to analyze a quote"
+              description="Run the Northlight Photography sample to see included services, risk level, local range estimates, and a negotiation-ready recommendation."
+              actionLabel="Analyze sample quote"
+              onAction={runAnalysis}
+            />
           ) : null}
         </div>
       </div>
 
-      <div className="mt-6">
-        <VendorComparisonTable quotes={data.quotes} />
+      <div className="mt-6" ref={comparisonRef}>
+        <VendorComparisonTable
+          quotes={data.quotes}
+          highlightedIds={data.selectedQuoteIds}
+          onSelect={(id) => {
+            selectQuote(id)
+            const quote = data.quotes.find((item) => item.id === id)
+            toast.success(`${quote?.vendorName ?? 'Vendor'} marked as selected`)
+          }}
+        />
       </div>
     </div>
   )
