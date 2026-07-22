@@ -35,6 +35,7 @@ export type EmailTone =
   | 'Professional'
   | 'Concise'
   | 'Firm but polite'
+  | 'Match our personality'
 
 export type PriorityOption =
   | 'Photography'
@@ -54,9 +55,106 @@ export type CompletedItem =
   | 'Invitations sent'
   | 'Wedding attire selected'
 
+export type CoupleArchetype =
+  | 'wild-adventurers'
+  | 'budget-smart'
+  | 'elegant-traditionalists'
+  | 'relaxed-minimalists'
+  | 'creative-storytellers'
+  | 'social-celebrators'
+
+export type AvatarType = 'illustration' | 'initials' | 'upload'
+
+export type WeddingVibe =
+  | 'Romantic garden'
+  | 'Modern city'
+  | 'Wild outdoor adventure'
+  | 'Cozy and intimate'
+  | 'Classic elegance'
+  | 'Colorful celebration'
+  | 'Beach escape'
+  | 'Cultural fusion'
+  | 'Minimal and modern'
+  | 'Vintage storybook'
+
+export type GuestMemoryPriority =
+  | 'The food'
+  | 'The party'
+  | 'The scenery'
+  | 'The ceremony'
+  | 'The personal details'
+  | 'How relaxed everything felt'
+  | 'The cultural traditions'
+  | 'How connected everyone felt'
+
+export type SpendingPhilosophy =
+  | 'Strictly stay under budget'
+  | 'Save where guests will not notice'
+  | 'Spend more on our top priorities'
+  | 'We value convenience over the lowest price'
+  | 'We are flexible for something truly special'
+
+export type LowPriorityExpense =
+  | 'Flowers'
+  | 'Stationery'
+  | 'Wedding favors'
+  | 'Formal transportation'
+  | 'Wedding cake'
+  | 'Luxury attire'
+  | 'Large bridal party'
+  | 'Elaborate décor'
+  | 'Videography'
+  | 'Entertainment upgrades'
+
+export type SecondaryTrait =
+  | 'Food lovers'
+  | 'Travel lovers'
+  | 'Family first'
+  | 'Eco-conscious'
+  | 'Photography obsessed'
+  | 'Dance-all-night'
+  | 'Introvert-friendly'
+  | 'Luxury seekers'
+  | 'DIY lovers'
+  | 'Cultural traditions'
+  | 'Pet parents'
+  | 'Sentimental'
+
+export type FitLevel = 'Strong fit' | 'Possible fit' | 'Weak fit'
+
+export interface PartnerProfile {
+  id: string
+  name: string
+  avatarType: AvatarType
+  avatarValue: string
+  traits: string[]
+  personalPriorities: string[]
+}
+
+export interface CouplePersonality {
+  primaryArchetype: CoupleArchetype
+  secondaryTraits: SecondaryTrait[]
+  weddingVibes: WeddingVibe[]
+  guestMemoryPriorities: GuestMemoryPriority[]
+  spendingPhilosophy: SpendingPhilosophy
+  lowPriorityExpenses: LowPriorityExpense[]
+}
+
+export interface PersonalizedInsight {
+  id: string
+  title: string
+  description: string
+  reason: string
+  relatedArchetype?: CoupleArchetype
+  actionLabel?: string
+  actionTo?: string
+}
+
 export interface CoupleProfile {
   partnerOneName: string
   partnerTwoName: string
+  partners: PartnerProfile[]
+  personality: CouplePersonality
   priorities: PriorityOption[]
   completedItems: CompletedItem[]
   onboardingComplete: boolean
@@ -75,7 +173,7 @@ export interface WeddingDetails {
 export interface PlanningTask {
   id: string
   title: string
-  category: VendorCategory | 'Planning' | 'Guests' | 'Attire'
+  category: VendorCategory | 'Planning' | 'Guests' | 'Attire' | 'Experience'
   phase: TimelinePhase
   recommendedDate: string
   status: TaskStatus
@@ -83,6 +181,8 @@ export interface PlanningTask {
   note?: string
   completed: boolean
   dueDate?: string
+  personalizedFor?: CoupleArchetype
+  personalizedLabel?: string
 }
 
 export interface Vendor {
@@ -125,6 +225,9 @@ export interface QuoteAnalysis {
   concerns: string[]
   recommendation: string
   percentAboveRange: number
+  fitLevel?: FitLevel
+  fitReason?: string
+  profileInfluences?: string[]
 }
 
 export interface BudgetCategory {
@@ -155,6 +258,7 @@ export interface EmailDraft {
   subject: string
   body: string
   createdAt: string
+  personalizedNote?: string
 }
 
 export interface ChatMessage {
@@ -166,7 +270,7 @@ export interface ChatMessage {
 }
 
 export interface ContextCard {
-  type: 'budget' | 'vendors' | 'action'
+  type: 'budget' | 'vendors' | 'action' | 'profile'
   title: string
   body: string
 }

@@ -29,6 +29,9 @@ const EmailsPage = lazy(() =>
 const AssistantPage = lazy(() =>
   import('@/pages/AssistantPage').then((module) => ({ default: module.AssistantPage })),
 )
+const ProfilePage = lazy(() =>
+  import('@/pages/ProfilePage').then((module) => ({ default: module.ProfilePage })),
+)
 
 function RouteFallback() {
   return (
@@ -55,6 +58,7 @@ export default function App() {
               <Route path="/budget" element={<BudgetPage />} />
               <Route path="/emails" element={<EmailsPage />} />
               <Route path="/assistant" element={<AssistantPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

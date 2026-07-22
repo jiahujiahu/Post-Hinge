@@ -67,6 +67,34 @@ export function QuoteAnalysisCard({
           <h4 className="font-semibold text-burgundy">Recommendation</h4>
           <p className="mt-2 text-sm leading-relaxed">{analysis.recommendation}</p>
         </div>
+        {analysis.fitLevel ? (
+          <div className="rounded-2xl border border-border/80 bg-secondary/40 p-4">
+            <h4 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Fit for your wedding
+            </h4>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <Badge
+                variant={
+                  analysis.fitLevel === 'Strong fit'
+                    ? 'success'
+                    : analysis.fitLevel === 'Weak fit'
+                      ? 'danger'
+                      : 'warning'
+                }
+              >
+                {analysis.fitLevel}
+              </Badge>
+            </div>
+            {analysis.fitReason ? (
+              <p className="mt-2 text-sm text-muted-foreground">{analysis.fitReason}</p>
+            ) : null}
+            {analysis.profileInfluences?.length ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Influenced by: {analysis.profileInfluences.join(' · ')}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         <div className="flex flex-wrap gap-2">
           <Button asChild>
             <Link to={emailHref}>Generate negotiation email</Link>

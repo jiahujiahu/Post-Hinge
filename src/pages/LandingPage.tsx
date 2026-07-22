@@ -109,19 +109,22 @@ export function LandingPage() {
             <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-blush/70 via-champagne/40 to-transparent blur-2xl" />
             <Card className="relative overflow-hidden border-champagne/60 bg-card/95">
               <CardContent className="p-5 md:p-6">
-                <div className="mb-4 flex items-center justify-between">
+                <div className="mb-4 flex items-center justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                       Dashboard preview
                     </p>
                     <p className="font-display text-2xl font-semibold">Maya & Alex</p>
                   </div>
-                  <Badge variant="rose">184 days to go</Badge>
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge variant="rose">Wild Adventurers</Badge>
+                    <Badge variant="secondary">184 days to go</Badge>
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     ['Budget left', '$13,850'],
-                    ['Tasks done', '2 / 14'],
+                    ['Tasks done', '2 / 19'],
                     ['Vendors booked', '1'],
                     ['At risk', '3 items'],
                   ].map(([label, value]) => (
@@ -150,9 +153,9 @@ export function LandingPage() {
         </div>
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           {[
-            ['Tell us about your wedding.', 'Share your date, city, guest count, budget, and priorities.'],
+            ['Tell us about your wedding—and who you are.', 'Share your date, budget, couple archetype, vibes, and spending style.'],
             ['Upload quotes and organize decisions.', 'Keep vendors, packages, and trade-offs in one place.'],
-            ['Get an AI-generated plan, recommendations, and emails.', 'Leave the spreadsheets—and the $5,000 planner fee—behind.'],
+            ['Get a plan that feels like you.', 'Timeline, budget, vendor advice, and emails adapt to your relationship.'],
           ].map(([title, body], index) => (
             <Card key={title} className="transition-transform hover:-translate-y-1">
               <CardContent className="p-6">
@@ -189,6 +192,79 @@ export function LandingPage() {
             ))}
           </div>
         </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 py-16 md:px-6">
+        <div className="max-w-3xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-burgundy">Personalization</p>
+          <h2 className="mt-2 font-display text-3xl font-semibold md:text-4xl">
+            Not every couple wants the same wedding.
+          </h2>
+          <p className="mt-3 text-muted-foreground">
+            AfterHinge learns what you value, how you spend, and how you want the day to feel. Your timeline,
+            budget, vendor recommendations, and emails adapt to your relationship—not a generic checklist.
+          </p>
+        </div>
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
+          {[
+            {
+              name: 'Wild Adventurers',
+              copy: 'Experiences over perfect place settings. Outdoor ceremonies, travel, and photography rise.',
+              tags: ['Travel', 'Outdoor', 'Experiences'],
+            },
+            {
+              name: 'Joyful and Budget-Smart',
+              copy: 'Beautiful and meaningful without spending just because tradition says so.',
+              tags: ['Practical', 'Value', 'DIY-friendly'],
+            },
+            {
+              name: 'Elegant Traditionalists',
+              copy: 'Timeless details, meaningful traditions, and a polished guest experience.',
+              tags: ['Classic', 'Formal', 'Etiquette'],
+            },
+          ].map((profile) => (
+            <Card key={profile.name} className="transition-transform hover:-translate-y-1">
+              <CardContent className="p-6">
+                <Badge variant="rose">{profile.name}</Badge>
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{profile.copy}</p>
+                <div className="mt-4 flex flex-wrap gap-1.5">
+                  {profile.tags.map((tag) => (
+                    <span key={tag} className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card className="mt-6 border-burgundy/15 bg-gradient-to-br from-card to-champagne/20">
+          <CardContent className="grid gap-4 p-6 md:grid-cols-2">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-burgundy">
+                Same photographer quote
+              </p>
+              <h3 className="mt-2 font-display text-2xl font-semibold">Northlight Photography · $4,200</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Advice changes with the couple profile—not a one-size-fits-all warning.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <div className="rounded-xl bg-blush/40 p-3 text-sm">
+                <p className="font-semibold text-burgundy">Wild Adventurers</p>
+                <p className="mt-1 text-muted-foreground">
+                  Above benchmark, but photography is a top priority—possible fit if travel fees are waived.
+                </p>
+              </div>
+              <div className="rounded-xl bg-secondary/80 p-3 text-sm">
+                <p className="font-semibold">Joyful and Budget-Smart</p>
+                <p className="mt-1 text-muted-foreground">
+                  Exceeds category target and local range—compare alternatives before committing.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </section>
 
       <section className="mx-auto max-w-6xl px-4 py-16 md:px-6">

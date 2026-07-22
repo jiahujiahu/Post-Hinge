@@ -26,6 +26,7 @@ import {
   makeEmailShorter,
 } from '@/lib/emailGenerator'
 import { copyText } from '@/lib/clipboard'
+import { personalityEmailNote } from '@/lib/personalization'
 import { formatDate } from '@/lib/utils'
 
 const purposes: EmailPurpose[] = [
@@ -42,6 +43,7 @@ const tones: EmailTone[] = [
   'Professional',
   'Concise',
   'Firm but polite',
+  'Match our personality',
 ]
 
 const vendorTypes: VendorCategory[] = [
@@ -56,13 +58,19 @@ const vendorTypes: VendorCategory[] = [
   'Miscellaneous',
 ]
 
+type GeneratedEmail = {
+  subject: string
+  body: string
+  personalizedNote?: string
+}
+
 export function EmailsPage() {
   const { data, addEmailDraft } = useApp()
   const [searchParams] = useSearchParams()
   const [vendorType, setVendorType] = useState<VendorCategory>('Photography')
   const [vendorName, setVendorName] = useState('Northlight Photography')
   const [purpose, setPurpose] = useState<EmailPurpose>('Quote negotiation')
-  const [tone, setTone] = useState<EmailTone>('Warm and friendly')
+  const [tone, setTone] = useState<EmailTone>('Match our personality')
   const [budgetRange, setBudgetRange] = useState('$3,600 CAD')
   const [questions, setQuestions] = useState(
     'Can the travel fee be waived?\nCan an album be included at the quoted price?',
@@ -73,6 +81,9 @@ export function EmailsPage() {
   const [subject, setSubject] = useState(SAMPLE_NEGOTIATION_EMAIL.subject)
   const [body, setBody] = useState(SAMPLE_NEGOTIATION_EMAIL.body)
   const [generating, setGenerating] = useState(false)
+  const [personalizedNote, setPersonalizedNote] = useState<string | undefined>(() =>
+    personalityEmailNote(data.couple),
+  )
 
   const coupleNames = `${data.couple.partnerOneName} & ${data.couple.partnerTwoName}`
 
@@ -81,19 +92,22 @@ export function EmailsPage() {
     purpose?: EmailPurpose
     vendorType?: VendorCategory
     tone?: EmailTone
-  }) => {
+  }): GeneratedEmail => {
     const nextVendor = overrides?.vendorName ?? vendorName
     const nextPurpose = overrides?.purpose ?? purpose
     const nextType = overrides?.vendorType ?? vendorType
     const nextTone = overrides?.tone ?? tone
 
+    // Keep the classic Northlight demo sample only for non-personality tones.
     if (
+      nextTone !== 'Match our personality' &&
       nextPurpose === 'Quote negotiation' &&
       nextVendor.toLowerCase().includes('northlight')
     ) {
       return {
         subject: SAMPLE_NEGOTIATION_EMAIL.subject,
         body: SAMPLE_NEGOTIATION_EMAIL.body.replace('Maya & Alex', coupleNames),
+        personalizedNote: undefined,
       }
     }
 
@@ -107,6 +121,7 @@ export function EmailsPage() {
       questions,
       context,
       coupleNames,
+      couple: data.couple,
     })
   }
 
@@ -121,6 +136,7 @@ export function EmailsPage() {
       const result = buildEmail(overrides)
       setSubject(result.subject)
       setBody(result.body)
+      setPersonalizedNote(result.personalizedNote)
       setGenerating(false)
       toast.success('Email ready')
     }, 450)
@@ -144,20 +160,14 @@ export function EmailsPage() {
     setVendorName(nextVendor)
     setVendorType(nextType)
 
-    if (
-      nextPurpose === 'Quote negotiation' &&
-      nextVendor.toLowerCase().includes('northlight')
-    ) {
-      setSubject(SAMPLE_NEGOTIATION_EMAIL.subject)
-      setBody(SAMPLE_NEGOTIATION_EMAIL.body.replace('Maya & Alex', coupleNames))
-      return
-    }
+    const nextTone: EmailTone = 'Match our personality'
+    setTone(nextTone)
 
     const result = generateEmail({
       vendorType: nextType,
       vendorName: nextVendor,
       purpose: nextPurpose,
-      tone: 'Warm and friendly',
+      tone: nextTone,
       weddingDate: formatDate(data.wedding.weddingDate),
       budgetRange: '$3,600 CAD',
       questions:
@@ -165,10 +175,12 @@ export function EmailsPage() {
       context:
         'We love the portfolio and especially value the second photographer and engagement session.',
       coupleNames,
+      couple: data.couple,
     })
     setSubject(result.subject)
     setBody(result.body)
-  }, [searchParams, coupleNames, data.wedding.weddingDate])
+    setPersonalizedNote(result.personalizedNote)
+  }, [searchParams, coupleNames, data.wedding.weddingDate, data.couple])
 
   return (
     <div>
@@ -290,6 +302,11 @@ export function EmailsPage() {
           ) : (
             <EmailPreview subject={subject} body={body} />
           )}
+          {personalizedNote || tone === 'Match our personality' ? (
+            <p className="rounded-xl bg-blush/40 px-3 py-2 text-sm text-burgundy">
+              {personalizedNote || personalityEmailNote(data.couple)}
+            </p>
+          ) : null}
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
@@ -335,6 +352,7 @@ export function EmailsPage() {
                   tone,
                   subject,
                   body,
+                  personalizedNote,
                 })
                 toast.success('Draft saved')
               }}
@@ -366,6 +384,11 @@ export function EmailsPage() {
                   </p>
                 </CardHeader>
                 <CardContent>
+                  {draft.personalizedNote ? (
+                    <p className="mb-3 rounded-xl bg-blush/40 px-3 py-2 text-xs text-burgundy">
+                      {draft.personalizedNote}
+                    </p>
+                  ) : null}
                   <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-muted-foreground">
                     {draft.body}
                   </pre>
@@ -379,6 +402,7 @@ export function EmailsPage() {
                       setVendorType(draft.vendorType)
                       setPurpose(draft.purpose)
                       setTone(draft.tone)
+                      setPersonalizedNote(draft.personalizedNote)
                       toast.message('Draft loaded into preview')
                     }}
                   >

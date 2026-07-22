@@ -1,4 +1,5 @@
-import type { EmailPurpose, EmailTone, VendorCategory } from '@/types'
+import type { CoupleArchetype, CoupleProfile, EmailPurpose, EmailTone, VendorCategory } from '@/types'
+import { archetypeLabel, personalityEmailNote } from '@/lib/personalization'
 
 interface EmailInput {
   vendorType: VendorCategory
@@ -10,9 +11,30 @@ interface EmailInput {
   questions: string
   context: string
   coupleNames: string
+  couple?: CoupleProfile
 }
 
-function toneIntro(tone: EmailTone, vendorName: string) {
+function personalityToneIntro(archetype: CoupleArchetype, vendorName: string) {
+  switch (archetype) {
+    case 'wild-adventurers':
+      return `Hi there,\n\nWe’re so excited about the possibility of working with ${vendorName}. Your work feels adventurous and full of life—exactly the energy we want for our day.`
+    case 'budget-smart':
+      return `Hi,\n\nThank you for the ${vendorName} details. We’re aiming for a beautiful celebration with strong value, and we’d love to explore flexible package options.`
+    case 'elegant-traditionalists':
+      return `Dear ${vendorName} team,\n\nThank you for sharing your proposal. We are planning a polished, traditional celebration and appreciate your thoughtful attention to detail.`
+    case 'relaxed-minimalists':
+      return `Hello,\n\nThank you for the ${vendorName} proposal. We’re hoping for a calm, simple day and would love clarity on a streamlined package.`
+    case 'creative-storytellers':
+      return `Hi,\n\nWe loved reviewing ${vendorName}. We’re looking for personal, story-driven details that feel unmistakably ours.`
+    case 'social-celebrators':
+      return `Hi!\n\nThank you for the ${vendorName} details—we’re planning a lively celebration and care a lot about guest energy and entertainment.`
+  }
+}
+
+function toneIntro(tone: EmailTone, vendorName: string, couple?: CoupleProfile) {
+  if (tone === 'Match our personality' && couple) {
+    return personalityToneIntro(couple.personality.primaryArchetype, vendorName)
+  }
   switch (tone) {
     case 'Warm and friendly':
       return `Hi there,\n\nThank you for taking the time to share details about ${vendorName}. We truly appreciate your work and are excited about the possibility of collaborating.`
@@ -20,6 +42,8 @@ function toneIntro(tone: EmailTone, vendorName: string) {
       return `Hello,\n\nThank you for the ${vendorName} details. We have a few quick questions before deciding.`
     case 'Firm but polite':
       return `Hello,\n\nThank you for the proposal from ${vendorName}. We want to be clear about our constraints while exploring whether we can move forward.`
+    case 'Match our personality':
+      return `Hi there,\n\nThank you for the ${vendorName} details—we’d love to find an option that fits our style and priorities.`
     default:
       return `Hello,\n\nThank you for sharing the ${vendorName} proposal. We are reviewing options carefully for our wedding.`
   }
@@ -35,14 +59,18 @@ function purposeBody(input: EmailInput) {
     : ''
 
   const context = input.context.trim() ? `\n\nAdditional context: ${input.context.trim()}` : ''
+  const personalityExtra =
+    input.tone === 'Match our personality' && input.couple
+      ? `\n\nFor context, we’re planning as ${archetypeLabel(input.couple.personality.primaryArchetype).toLowerCase()} with a focus on ${input.couple.priorities.slice(0, 3).join(', ').toLowerCase()}.`
+      : ''
 
   switch (input.purpose) {
     case 'Initial inquiry':
-      return `We are planning our wedding for ${input.weddingDate} and are currently looking for ${input.vendorType.toLowerCase()} services. Our budget range for this category is approximately ${input.budgetRange}.${questions}${context}\n\nCould you share package options, availability, and next steps?`
+      return `We are planning our wedding for ${input.weddingDate} and are currently looking for ${input.vendorType.toLowerCase()} services. Our budget range for this category is approximately ${input.budgetRange}.${personalityExtra}${questions}${context}\n\nCould you share package options, availability, and next steps?`
     case 'Follow-up':
-      return `We wanted to follow up on our previous note regarding ${input.vendorType.toLowerCase()} services for our ${input.weddingDate} wedding.${questions}${context}\n\nWe would appreciate an update when you have a moment.`
+      return `We wanted to follow up on our previous note regarding ${input.vendorType.toLowerCase()} services for our ${input.weddingDate} wedding.${personalityExtra}${questions}${context}\n\nWe would appreciate an update when you have a moment.`
     case 'Quote negotiation':
-      return `We really like what ${input.vendorName} offers and can see how it would elevate our day. Before moving forward, we wanted to ask whether there is flexibility around the quoted package. We are currently working within a budget of approximately ${input.budgetRange}.${questions}${context}\n\nWe would be happy to discuss options that could work for both sides.`
+      return `We really like what ${input.vendorName} offers and can see how it would elevate our day. Before moving forward, we wanted to ask whether there is flexibility around the quoted package. We are currently working within a budget of approximately ${input.budgetRange}.${personalityExtra}${questions}${context}\n\nWe would be happy to discuss options that could work for both sides.`
     case 'Decline vendor':
       return `After careful consideration, we have decided to move forward with another option for ${input.vendorType.toLowerCase()}. We sincerely appreciate the time you spent preparing details for us.${context}\n\nWe wish you all the best with your upcoming weddings.`
     case 'Confirm booking':
@@ -62,7 +90,7 @@ export function generateEmail(input: EmailInput) {
     'Request contract clarification': `Quick contract questions for ${input.vendorName}`,
   }
 
-  const body = `${toneIntro(input.tone, input.vendorName)}
+  const body = `${toneIntro(input.tone, input.vendorName, input.couple)}
 
 ${purposeBody(input)}
 
@@ -72,6 +100,10 @@ ${input.coupleNames}`
   return {
     subject: subjectMap[input.purpose],
     body,
+    personalizedNote:
+      input.tone === 'Match our personality' && input.couple
+        ? personalityEmailNote(input.couple)
+        : undefined,
   }
 }
 

@@ -9,6 +9,7 @@ import {
   RefreshCcw,
   Store,
   Heart,
+  Users,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -19,6 +20,7 @@ import { useApp } from '@/hooks/useApp'
 
 const links = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/profile', label: 'Couple Profile', icon: Users },
   { to: '/timeline', label: 'Timeline', icon: CalendarDays },
   { to: '/vendors', label: 'Vendors', icon: Store },
   { to: '/budget', label: 'Budget', icon: PiggyBank },

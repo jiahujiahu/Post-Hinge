@@ -24,6 +24,11 @@ export function TaskCard({ task, onToggle }: TaskCardProps) {
               {task.title}
             </h3>
             <Badge variant="secondary">{task.category}</Badge>
+            {task.personalizedLabel ? (
+              <Badge variant="outline" className="border-champagne/80 bg-champagne/20 text-burgundy">
+                {task.personalizedLabel}
+              </Badge>
+            ) : null}
           </div>
           <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
             <span>Due {formatDate(task.dueDate || task.recommendedDate)}</span>

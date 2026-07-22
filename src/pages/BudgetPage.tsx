@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
-import type { Expense, VendorCategory } from '@/types'
+import type { BudgetCategory, Expense, VendorCategory } from '@/types'
 import { useApp } from '@/hooks/useApp'
 import { PageHeader } from '@/components/PageHeader'
 import { BudgetChart } from '@/components/BudgetChart'
@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { formatCurrency, percentUsed } from '@/lib/utils'
+import { suggestPriorityBudget, archetypeLabel } from '@/lib/personalization'
 
 const categories: VendorCategory[] = [
   'Venue',
@@ -52,13 +53,28 @@ const emptyExpense = (): Omit<Expense, 'id'> => ({
 })
 
 export function BudgetPage() {
-  const { data, budgetSummary, budgetCategories, addExpense, updateExpense, deleteExpense } = useApp()
+  const {
+    data,
+    budgetSummary,
+    budgetCategories,
+    addExpense,
+    updateExpense,
+    deleteExpense,
+    applyPriorityBudget,
+  } = useApp()
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<'all' | VendorCategory>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Expense | null>(null)
   const [draft, setDraft] = useState(emptyExpense())
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [suggested, setSuggested] = useState<BudgetCategory[] | null>(null)
+  const [confirmRebalance, setConfirmRebalance] = useState(false)
+
+  const suggestedAllocations = useMemo(
+    () => suggestPriorityBudget(budgetCategories, data.couple, data.wedding.totalBudget),
+    [budgetCategories, data.couple, data.wedding.totalBudget],
+  )
 
   const filteredExpenses = useMemo(() => {
     return data.expenses.filter((expense) => {
@@ -170,6 +186,59 @@ export function BudgetPage() {
           />
         )}
       </div>
+
+      <Card className="mt-6">
+        <CardHeader className="gap-2">
+          <CardTitle className="text-xl">Priority-based budget</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            AfterHinge recommends where to spend and where to simplify based on what matters to
+            you—not generic wedding rules. Profile: {archetypeLabel(data.couple.personality.primaryArchetype)}.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-border text-muted-foreground">
+                  <th className="pb-3 font-semibold">Category</th>
+                  <th className="pb-3 font-semibold">Current</th>
+                  <th className="pb-3 font-semibold">Suggested for you</th>
+                  <th className="pb-3 font-semibold">Shift</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(suggested ?? suggestedAllocations).map((category) => {
+                  const current = budgetCategories.find((item) => item.id === category.id)?.allocated ?? 0
+                  const delta = category.allocated - current
+                  return (
+                    <tr key={category.id} className="border-b border-border/70 last:border-0">
+                      <td className="py-3 pr-3 font-medium">{category.name}</td>
+                      <td className="py-3 pr-3">{formatCurrency(current)}</td>
+                      <td className="py-3 pr-3">{formatCurrency(category.allocated)}</td>
+                      <td className={`py-3 ${delta > 0 ? 'text-success' : delta < 0 ? 'text-burgundy' : 'text-muted-foreground'}`}>
+                        {delta > 0 ? '+' : ''}
+                        {formatCurrency(delta)}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            For Maya & Alex-style priorities, photography, food, guest experience, and travel-leaning
+            transportation rise—while favors, formal stationery, and decorative extras shrink.
+          </p>
+          <Button
+            onClick={() => {
+              setSuggested(suggestedAllocations)
+              setConfirmRebalance(true)
+            }}
+          >
+            Rebalance around our priorities
+          </Button>
+        </CardContent>
+      </Card>
 
       <div className="mt-6">
         <BudgetChart categories={budgetCategories} summary={budgetSummary} variant="detailed" />
@@ -448,6 +517,21 @@ export function BudgetPage() {
           if (!deleteId) return
           deleteExpense(deleteId)
           toast.success('Expense deleted')
+        }}
+      />
+
+      <ConfirmDialog
+        open={confirmRebalance}
+        title="Apply priority-based allocations?"
+        description="This updates category budgets to match your couple profile. Spent and committed amounts stay the same."
+        confirmLabel="Apply rebalance"
+        confirmVariant="default"
+        onOpenChange={setConfirmRebalance}
+        onConfirm={() => {
+          const next = suggested ?? suggestedAllocations
+          applyPriorityBudget(next)
+          setSuggested(null)
+          toast.success('Budget rebalanced around your priorities')
         }}
       />
     </div>
