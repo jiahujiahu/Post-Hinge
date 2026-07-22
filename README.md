@@ -16,12 +16,22 @@ AfterHinge is a hackathon MVP React app that helps engaged couples plan a weddin
 
 ## Run locally
 
+Requires **Node.js 18.18+** (Node 20 LTS recommended). Vite 8+ needs Node 20+, so this project is pinned to Vite 6 for broader compatibility.
+
 ```bash
 npm install
 npm run dev
 ```
 
 Then open the URL Vite prints (usually `http://localhost:5173`).
+
+If you previously installed dependencies under Vite 8, delete `node_modules` and reinstall:
+
+```bash
+rm -rf node_modules package-lock.json
+npm install
+npm run dev
+```
 
 ## Demo walkthrough
 
