@@ -43,6 +43,7 @@ export function TimelineSection({ phase, tasks, onToggle, onEdit, onDelete }: Ti
                     <Badge variant="secondary">{task.category}</Badge>
                     <Badge variant="outline">{statusLabel(task.status)}</Badge>
                     <Badge variant="rose">{priorityLabel(task.priority)}</Badge>
+                    {task.personalizedLabel ? <Badge variant="warning">{task.personalizedLabel}</Badge> : null}
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">
                     Recommended: {formatDate(task.recommendedDate)}

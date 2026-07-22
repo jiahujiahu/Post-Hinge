@@ -8,11 +8,12 @@ import { cn } from '@/lib/utils'
 const STORAGE_KEY = 'afterhinge_walkthrough_dismissed'
 
 const steps = [
-  { label: 'Analyze photographer quote', to: '/vendors', hint: 'Northlight sample is prefilled' },
+  { label: 'Review your couple profile', to: '/profile', hint: 'Wild Adventurers · travel & food' },
+  { label: 'Analyze photographer quote', to: '/vendors', hint: 'See “Fit for your wedding”' },
   { label: 'Compare vendor packages', to: '/vendors#comparison', hint: 'Best value is highlighted' },
-  { label: 'Generate negotiation email', to: '/emails?purpose=Quote%20negotiation&vendor=Northlight%20Photography', hint: 'Copy or save a draft' },
-  { label: 'Review budget overrun', to: '/budget', hint: 'Projected spend vs $40k plan' },
-  { label: 'Ask about a live band', to: '/assistant?q=Can%20we%20afford%20a%20live%20band%3F', hint: 'Suggested prompt is ready' },
+  { label: 'Generate a personality-matched email', to: '/emails?purpose=Quote%20negotiation&vendor=Northlight%20Photography&autogen=1', hint: 'Tone: Match our personality' },
+  { label: 'Rebalance the priority budget', to: '/budget', hint: 'Protect photo, food, experiences' },
+  { label: 'Ask how to make it feel like you', to: '/assistant?q=How%20can%20we%20make%20the%20wedding%20feel%20more%20like%20us%3F', hint: 'Profile-aware answer' },
 ]
 
 interface DemoWalkthroughProps {

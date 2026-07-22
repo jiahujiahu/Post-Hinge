@@ -1,12 +1,39 @@
 import type { AppData } from '@/types'
+import { personalizedTasksForArchetype } from '@/lib/personalization'
 
-export const STORAGE_KEY = 'afterhinge_demo_data_v2'
+export const STORAGE_KEY = 'afterhinge_demo_data_v3'
 
 export const createDefaultAppData = (): AppData => ({
   couple: {
     partnerOneName: 'Maya',
     partnerTwoName: 'Alex',
-    priorities: ['Photography', 'Food', 'Staying under budget'],
+    partners: [
+      {
+        id: 'partner_maya',
+        name: 'Maya',
+        avatarType: 'illustration',
+        avatarValue: 'avatar_aurora',
+        traits: ['Curious', 'Warm', 'Experience-led'],
+        personalPriorities: ['Photography', 'Travel moments', 'Guest comfort'],
+      },
+      {
+        id: 'partner_alex',
+        name: 'Alex',
+        avatarType: 'illustration',
+        avatarValue: 'avatar_river',
+        traits: ['Adventurous', 'Food-focused', 'Practical romantic'],
+        personalPriorities: ['Food', 'Outdoor ceremony', 'Shared experiences'],
+      },
+    ],
+    personality: {
+      primaryArchetype: 'wild-adventurers',
+      secondaryTraits: ['Travel lovers', 'Food lovers'],
+      weddingVibes: ['Wild outdoor adventure', 'Cozy and intimate'],
+      guestMemoryPriorities: ['The scenery', 'The food', 'How connected everyone felt'],
+      spendingPhilosophy: 'Spend more on our top priorities',
+      lowPriorityExpenses: ['Wedding favors', 'Stationery', 'Formal transportation'],
+    },
+    priorities: ['Photography', 'Food', 'Guest experience'],
     completedItems: ['Venue booked', 'Guest list drafted'],
     onboardingComplete: true,
   },
@@ -169,6 +196,7 @@ export const createDefaultAppData = (): AppData => ({
       priority: 'low',
       completed: false,
     },
+    ...personalizedTasksForArchetype('wild-adventurers'),
   ],
   vendors: [
     {
@@ -306,8 +334,18 @@ export const createDefaultAppData = (): AppData => ({
         'Deposit is non-refundable',
       ],
       recommendation:
-        'The package is approximately 24% above the typical local range. The second photographer and engagement session add value, but you should ask whether the travel fee can be waived and whether an album can be included before accepting.',
+        'The quote is above the local demo benchmark, but photography is one of your top priorities. Because this package includes an engagement session and second photographer, it may still be a strong fit if the vendor removes the travel fee or adds an album.',
       percentAboveRange: 24,
+      fitLevel: 'Possible fit',
+      fitReason:
+        'Photography is a top priority and your spending philosophy allows stretching for what matters.',
+      profileInfluences: [
+        'Wild Adventurers',
+        'Photography priority',
+        'Spend more on our top priorities',
+        'Travel lovers',
+        'Food lovers',
+      ],
     },
   ],
   budgetCategories: [
@@ -442,7 +480,7 @@ Maya & Alex`,
       id: 'chat_1',
       role: 'assistant',
       content:
-        'Hi Maya & Alex — I’m your AfterHinge planning copilot. Ask me about budget trade-offs, vendor value, or what to prioritize this month. Demo price benchmarks are estimates, not verified market data.',
+        'Hi Maya & Alex — I’m your AfterHinge planning copilot. As Wild Adventurers, I’ll lean into outdoor vibes, travel moments, and experience-led priorities. Ask me about budget trade-offs, vendor value, or what to prioritize this month. Demo price benchmarks are estimates, not verified market data.',
       createdAt: '2026-07-20T09:00:00.000Z',
     },
   ],

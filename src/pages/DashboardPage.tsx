@@ -8,12 +8,15 @@ import { TaskCard } from '@/components/TaskCard'
 import { RiskAlert } from '@/components/RiskAlert'
 import { BudgetChart } from '@/components/BudgetChart'
 import { DemoWalkthrough } from '@/components/DemoWalkthrough'
+import { CoupleProfileHeader } from '@/components/CoupleProfileHeader'
+import { PersonalizedInsightCard } from '@/components/PersonalizedInsightCard'
 import { EmptyState } from '@/components/EmptyState'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { buildPersonalizedInsights } from '@/lib/personalization'
 import { daysUntil, formatCurrency, formatDate, greetingForNow, riskLabel, riskStyles } from '@/lib/utils'
 
 export function DashboardPage() {
@@ -72,7 +75,18 @@ export function DashboardPage() {
 
       <DemoWalkthrough className="mb-6" />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <CoupleProfileHeader couple={data.couple} />
+
+      <section className="mt-6">
+        <h2 className="mb-3 font-display text-2xl font-semibold">Made for you</h2>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {buildPersonalizedInsights(data.couple, data.wedding).map((insight) => (
+            <PersonalizedInsightCard key={insight.id} insight={insight} />
+          ))}
+        </div>
+      </section>
+
+      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Days until wedding"
           value={String(Math.max(days, 0))}

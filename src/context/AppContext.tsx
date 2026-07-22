@@ -12,6 +12,7 @@ import type {
 import { loadAppData, resetAppData, saveAppData } from '@/lib/storage'
 import { getBudgetSummary } from '@/lib/budget'
 import { applyOnboardingToAppData } from '@/lib/onboarding'
+import { mergePersonalizedTasks, personalizeQuoteAnalysis } from '@/lib/personalization'
 import { createId, deriveBudgetCategories } from '@/lib/utils'
 import { AppContext, type AppContextValue } from '@/context/app-context'
 
@@ -204,6 +205,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
               contextCards: message.contextCards,
             },
           ],
+        })),
+      updatePersonalityProfile: (couple) =>
+        update((prev) => {
+          const nextCouple = {
+            ...couple,
+            partners: couple.partners.map((partner, index) => ({
+              ...partner,
+              name: index === 0 ? couple.partnerOneName : couple.partnerTwoName,
+            })),
+          }
+          return {
+            ...prev,
+            couple: nextCouple,
+            tasks: mergePersonalizedTasks(prev.tasks, couple.personality.primaryArchetype),
+            analyses: prev.analyses.map((item) => {
+              const category = prev.quotes.find((quote) => quote.id === item.quoteId)?.category
+              return personalizeQuoteAnalysis(item, nextCouple, category)
+            }),
+          }
+        }),
+      applyPriorityBudget: (categories) =>
+        update((prev) => ({
+          ...prev,
+          budgetCategories: categories,
         })),
       resetDemo: () => setData(resetAppData()),
     }

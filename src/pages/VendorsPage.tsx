@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ANALYSIS_STEPS, buildMockAnalysis, quoteFromAnalysis, resolveQuoteId } from '@/lib/quoteAnalysis'
+import { personalizeQuoteAnalysis } from '@/lib/personalization'
 
 const categories: VendorCategory[] = [
   'Photography',
@@ -44,7 +45,12 @@ export function VendorsPage() {
   const [fileName, setFileName] = useState<string | undefined>('northlight-quote.pdf')
   const [analyzing, setAnalyzing] = useState(false)
   const [activeStep, setActiveStep] = useState(0)
-  const [analysis, setAnalysis] = useState<QuoteAnalysis | null>(data.analyses[0] ?? null)
+  const [analysis, setAnalysis] = useState<QuoteAnalysis | null>(() => {
+    const first = data.analyses[0]
+    if (!first) return null
+    const quoteCategory = data.quotes.find((quote) => quote.id === first.quoteId)?.category
+    return personalizeQuoteAnalysis(first, data.couple, quoteCategory)
+  })
   const comparisonRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -52,6 +58,18 @@ export function VendorsPage() {
       comparisonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   }, [])
+
+  useEffect(() => {
+    if (analyzing) return
+    setAnalysis((current) => {
+      const source =
+        (current && data.analyses.find((item) => item.quoteId === current.quoteId)) ||
+        data.analyses[0]
+      if (!source) return null
+      const quoteCategory = data.quotes.find((quote) => quote.id === source.quoteId)?.category
+      return personalizeQuoteAnalysis(source, data.couple, quoteCategory)
+    })
+  }, [data.couple, data.analyses, data.quotes, analyzing])
 
   const runAnalysis = () => {
     const amount = Number(price)
@@ -75,7 +93,7 @@ export function VendorsPage() {
           data.quotes.find((quote) => quote.vendorName.toLowerCase() === vendorName.toLowerCase())?.id,
         )
         const existing = data.quotes.find((quote) => quote.id === quoteId)
-        const result = buildMockAnalysis({
+        const raw = buildMockAnalysis({
           vendorName,
           category,
           price: amount,
@@ -83,6 +101,7 @@ export function VendorsPage() {
           notes,
           quoteId,
         })
+        const result = personalizeQuoteAnalysis(raw, data.couple, category)
         const quote = quoteFromAnalysis(result, category, notes, fileName, existing)
         addQuote(quote, result)
         setAnalysis(result)

@@ -34,6 +34,8 @@ export interface AppContextValue {
   addChatMessage: (
     message: Omit<ChatMessage, 'id' | 'createdAt'> & { id?: string; createdAt?: string },
   ) => void
+  updatePersonalityProfile: (couple: CoupleProfile) => void
+  applyPriorityBudget: (categories: BudgetCategory[]) => void
   resetDemo: () => void
 }
 
