@@ -36,7 +36,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
   const [confirmReset, setConfirmReset] = useState(false)
 
   return (
-    <aside className="flex h-full w-full flex-col border-r border-border/80 bg-card/90 px-4 py-5 backdrop-blur lg:w-72">
+    <aside className="flex min-h-full w-full flex-col border-r border-border/80 bg-card/90 px-4 py-5 backdrop-blur lg:h-full lg:w-72">
       <div className="mb-6 px-2">
         <div className="flex items-center gap-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-burgundy text-primary-foreground">
